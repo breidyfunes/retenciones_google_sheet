@@ -1,9 +1,11 @@
-<!DOCTYPE html>
+import os
+
+html_content = '''<!DOCTYPE html>
 <html lang="es">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Sistema de Retenciones - Gestión Fiscal SAR Honduras</title>
+    <title>Sistema de Retenciones - Gestión Fiscal</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
     <script>
@@ -12,11 +14,11 @@
                 extend: {
                     colors: {
                         brand: {
-                            sidebar: '#48B8B8',     // Turquesa principal
+                            sidebar: '#48B8B8',     // Turquesa de las imágenes
                             background: '#FFF9E6',  // Marfil/Crema suave
-                            primary: '#F08060',     // Coral/Naranja
+                            primary: '#F08060',     // Coral/Naranja suave
                             primaryHover: '#E07151',
-                            yellowBg: '#FDE68A',    // Amarillo para badges/alertas CAI
+                            yellowBg: '#FDE68A',    // Amarillo suave para badges y banners
                             yellowText: '#8C730A',
                             text: '#2C3E50',
                         }
@@ -70,7 +72,7 @@
             transition: all 0.2s ease;
             box-shadow: 0 4px 12px rgba(240, 128, 96, 0.25);
             display: inline-flex;
-            align-items: center;
+            items-center: center;
             justify-content: center;
             gap: 0.5rem;
         }
@@ -100,57 +102,18 @@
             font-size: 0.75rem;
             display: inline-block;
         }
-        @media print {
-            @page {
-                margin: 0;
-            }
-            body * {
-                visibility: hidden;
-            }
-            #modal-impresion, #modal-impresion * {
-                visibility: visible;
-            }
-            #modal-impresion {
-                position: absolute;
-                left: 0;
-                top: 0;
-                width: 100%;
-                margin: 0 !important;
-                padding: 0 !important;
-                background: white !important;
-                box-shadow: none !important;
-            }
-            .no-print {
-                display: none !important;
-            }
-            .print-container {
-                padding: 0 2.5rem 2.5rem 2.5rem !important;
-                padding-top: 0 !important;
-                margin-top: 0 !important;
-                max-width: 100% !important;
-                box-shadow: none !important;
-                border: none !important;
-            }
-        }
     </style>
 </head>
 <body class="h-screen flex overflow-hidden text-brand-text">
 
-    <!-- INDICADOR DE CARGA -->
-    <div id="loader-overlay" class="fixed inset-0 bg-slate-900/50 backdrop-blur-md z-[100] flex flex-col items-center justify-center transition-opacity duration-300 opacity-0 pointer-events-none">
-        <div class="bg-white p-6 rounded-3xl shadow-2xl flex flex-col items-center gap-4 border border-slate-100">
-            <div class="w-12 h-12 border-4 border-brand-primary border-t-transparent rounded-full animate-spin"></div>
-            <p id="loader-text" class="font-bold text-sm text-slate-700">Sincronizando con Google Sheets...</p>
-        </div>
-    </div>
-
     <!-- SIDEBAR -->
-    <aside class="w-64 bg-brand-sidebar text-white flex flex-col shadow-2xl z-20 shrink-0">
+    <aside class="w-64 bg-brand-sidebar text-white flex flex-col shadow-2xl z-20">
         <div class="p-6 flex items-center justify-between">
             <div>
                 <h1 class="text-2xl font-black tracking-tight">RETENCIONES</h1>
-                <p class="text-white/80 text-xs font-medium mt-0.5">Gestión Fiscal SAR Honduras</p>
+                <p class="text-white/80 text-xs font-medium mt-0.5">Gestión Fiscal</p>
             </div>
+            <button class="text-white/70 hover:text-white"><i class="fa-solid fa-chevron-left text-sm"></i></button>
         </div>
 
         <nav id="sidebar-nav" class="flex-1 px-4 py-4 space-y-2.5 mt-2">
@@ -172,8 +135,8 @@
         </nav>
 
         <div class="p-4 border-t border-white/10">
-            <button onclick="sincronizarConServidor()" class="w-full flex items-center gap-3 px-4 py-3 rounded-2xl transition-all font-semibold text-white/90 hover:bg-white/10 hover:text-white">
-                <i class="fa-solid fa-arrows-rotate w-5 text-center"></i> Sincronizar Datos
+            <button onclick="showToast('Sesión finalizada', 'success')" class="w-full flex items-center gap-3 px-4 py-3 rounded-2xl transition-all font-semibold text-white/90 hover:bg-white/10 hover:text-white">
+                <i class="fa-solid fa-arrow-right-from-bracket w-5 text-center"></i> Cerrar Sesión
             </button>
         </div>
     </aside>
@@ -182,15 +145,18 @@
     <main class="flex-1 overflow-y-auto relative">
         <div class="max-w-7xl mx-auto p-8 relative">
 
-            <!-- VISTA: HISTORIAL RETENCIONES -->
+            <!-- ========================================== -->
+            <!-- VISTA: HISTORIAL RETENCIONES               -->
+            <!-- ========================================== -->
             <section id="view-historial-retenciones" class="view-section">
                 <div class="flex justify-between items-end mb-6">
                     <div>
-                        <h2 class="text-3xl font-extrabold text-slate-800 tracking-tight">Comprobantes de Retención</h2>
-                        <p class="text-slate-500 text-sm font-medium mt-1">Usuario activo: <strong id="usuario-activo-display">Breidy Funes</strong></p>
+                        <h2 class="text-3xl font-extrabold text-slate-800 tracking-tight">Retenciones</h2>
+                        <p class="text-slate-500 text-sm font-medium mt-1">Bienvenido, <strong>Breidy Funes</strong></p>
                     </div>
                 </div>
 
+                <!-- Buscador Avanzado y Botón Nuevo -->
                 <div class="flex items-center justify-between mb-6 bg-white p-3 rounded-2xl shadow-sm border border-slate-100 gap-4">
                     <div class="relative flex-1">
                         <i class="fa-solid fa-search absolute left-4 top-1/2 -translate-y-1/2 text-slate-400"></i>
@@ -201,6 +167,7 @@
                     </button>
                 </div>
 
+                <!-- Tabla de Historial -->
                 <div class="bg-white rounded-3xl shadow-sm border border-slate-100 overflow-hidden">
                     <div class="overflow-x-auto">
                         <table class="w-full text-left border-collapse">
@@ -209,7 +176,6 @@
                                     <th class="py-4 px-6">N° Retención</th>
                                     <th class="py-4 px-6">Fecha</th>
                                     <th class="py-4 px-6">Proveedor</th>
-                                    <th class="py-4 px-6 text-center">Tipo Impuesto</th>
                                     <th class="py-4 px-6 text-right">Monto Retenido</th>
                                     <th class="py-4 px-6 text-center">Acciones</th>
                                 </tr>
@@ -223,19 +189,22 @@
                         </div>
                         <h3 class="text-slate-600 font-medium">No hay retenciones registradas</h3>
                     </div>
+                    <!-- Paginación Retenciones -->
                     <div id="paginacion-retenciones-container" class="p-4 bg-slate-50/70 border-t border-slate-100 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs font-semibold text-slate-500">
-                        <div id="paginacion-info-retenciones">Mostrando 0 de 0 retenciones</div>
+                        <div id="paginacion-info-retenciones">Mostrando 1 a 10 de 12 retenciones</div>
                         <div class="flex items-center gap-1.5" id="paginacion-botones-retenciones"></div>
                     </div>
                 </div>
             </section>
 
-            <!-- VISTA: PROVEEDORES (ORDEN A-Z + PAGINACIÓN 10 REGISTROS) -->
+            <!-- ========================================== -->
+            <!-- VISTA: PROVEEDORES                         -->
+            <!-- ========================================== -->
             <section id="view-proveedores" class="view-section hidden">
                 <div class="flex justify-between items-center mb-6">
                     <div>
-                        <h2 class="text-3xl font-extrabold text-slate-800 tracking-tight">Directorio de Proveedores</h2>
-                        <p class="text-slate-500 text-sm font-medium mt-1">Gestión de Sujetos de Retención (Ordenados A-Z)</p>
+                        <h2 class="text-3xl font-extrabold text-slate-800 tracking-tight">Proveedores</h2>
+                        <p class="text-slate-500 text-sm font-medium mt-1">Bienvenido, <strong>Breidy Funes</strong></p>
                     </div>
                     <div class="flex items-center gap-3">
                         <div class="relative">
@@ -249,40 +218,29 @@
                 </div>
 
                 <div class="bg-white rounded-3xl shadow-sm border border-slate-100 overflow-hidden">
-                    <div class="overflow-x-auto">
-                        <table class="w-full text-left border-collapse">
-                            <thead>
-                                <tr class="bg-slate-50/70 border-b border-slate-100 text-[11px] uppercase tracking-wider text-slate-400 font-bold">
-                                    <th class="py-4 px-6">Proveedor</th>
-                                    <th class="py-4 px-6">RTN</th>
-                                    <th class="py-4 px-6">Contacto</th>
-                                    <th class="py-4 px-6">Teléfono / Correo</th>
-                                    <th class="py-4 px-6 text-center">Acciones</th>
-                                </tr>
-                            </thead>
-                            <tbody id="tabla-proveedores"></tbody>
-                        </table>
-                    </div>
-                    <div id="empty-state-proveedores" class="hidden py-16 text-center flex flex-col items-center">
-                        <div class="w-16 h-16 bg-slate-50 rounded-full flex items-center justify-center text-slate-300 mb-4">
-                            <i class="fa-solid fa-users text-3xl"></i>
-                        </div>
-                        <h3 class="text-slate-600 font-medium">No se encontraron proveedores</h3>
-                    </div>
-                    <!-- Paginación Proveedores -->
-                    <div id="paginacion-proveedores-container" class="p-4 bg-slate-50/70 border-t border-slate-100 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs font-semibold text-slate-500">
-                        <div id="paginacion-info-proveedores">Mostrando 0 de 0 proveedores</div>
-                        <div class="flex items-center gap-1.5" id="paginacion-botones-proveedores"></div>
-                    </div>
+                    <table class="w-full text-left border-collapse">
+                        <thead>
+                            <tr class="bg-slate-50/70 border-b border-slate-100 text-[11px] uppercase tracking-wider text-slate-400 font-bold">
+                                <th class="py-4 px-6">Proveedor</th>
+                                <th class="py-4 px-6">RTN</th>
+                                <th class="py-4 px-6">Contacto</th>
+                                <th class="py-4 px-6">Teléfono / Correo</th>
+                                <th class="py-4 px-6 text-center">Acciones</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tabla-proveedores"></tbody>
+                    </table>
                 </div>
             </section>
 
-            <!-- VISTA: DOCUMENTOS CAI -->
+            <!-- ========================================== -->
+            <!-- VISTA: DOCUMENTOS CAI                      -->
+            <!-- ========================================== -->
             <section id="view-documentos" class="view-section hidden">
                 <div class="flex justify-between items-center mb-6">
                     <div>
                         <h2 class="text-3xl font-extrabold text-slate-800 tracking-tight">Autorizaciones (CAI)</h2>
-                        <p class="text-slate-500 text-sm font-medium mt-1">Control de Rangos Autorizados por el SAR</p>
+                        <p class="text-slate-500 text-sm font-medium mt-1">Gestión de Talonarios Fiscales SAR</p>
                     </div>
                     <button onclick="abrirModalDocumento()" class="btn-coral text-sm">
                         <i class="fa-solid fa-plus"></i> Nuevo CAI
@@ -297,7 +255,7 @@
                                 <th class="py-4 px-6">Rango Autorizado</th>
                                 <th class="py-4 px-6">Clave CAI</th>
                                 <th class="py-4 px-6">Vencimiento</th>
-                                <th class="py-4 px-6 text-center">Último Correlativo Usado</th>
+                                <th class="py-4 px-6 text-center">Último Usado</th>
                                 <th class="py-4 px-6 text-center">Acciones</th>
                             </tr>
                         </thead>
@@ -306,44 +264,45 @@
                 </div>
             </section>
 
-            <!-- VISTA: MI EMPRESA -->
+            <!-- ========================================== -->
+            <!-- VISTA: MI EMPRESA                          -->
+            <!-- ========================================== -->
             <section id="view-empresa" class="view-section hidden">
-                <h2 class="text-3xl font-extrabold text-slate-800 tracking-tight mb-6">Configuración de la Empresa Emisora</h2>
+                <h2 class="text-3xl font-extrabold text-slate-800 tracking-tight mb-6">Mi Empresa</h2>
                 <div class="max-w-2xl">
                     <div class="bg-white rounded-3xl shadow-sm border border-slate-100 p-8">
                         <form id="empresaForm" class="space-y-5">
                             <input type="hidden" id="emp_id" value="1">
                             <div>
                                 <label class="label-base">RTN de la Empresa <span class="text-brand-primary">*</span></label>
-                                <input type="text" id="emp_RTN" required class="input-base font-mono" maxlength="14" placeholder="00000000000000">
+                                <input type="text" id="emp_RTN" required class="input-base" maxlength="14" placeholder="00000000000000">
                             </div>
                             <div>
                                 <label class="label-base">Nombre / Razón Social <span class="text-brand-primary">*</span></label>
                                 <input type="text" id="emp_empresa" required class="input-base" placeholder="Nombre de tu empresa">
                             </div>
                             <div>
-                                <label class="label-base">Dirección Fiscal</label>
+                                <label class="label-base">Dirección</label>
                                 <input type="text" id="emp_direccion" class="input-base" placeholder="Dirección de la empresa">
                             </div>
                             <div>
-                                <label class="label-base">Teléfono de Contacto</label>
-                                <input type="text" id="emp_telefono" class="input-base" placeholder="+504 0000-0000">
+                                <label class="label-base">Teléfono</label>
+                                <input type="text" id="emp_telefono" class="input-base" placeholder="Teléfono de contacto">
                             </div>
                             <div class="flex justify-end pt-4">
-                                <button type="submit" class="btn-coral">Guardar Configuración</button>
+                                <button type="submit" class="btn-coral">Actualizar Datos</button>
                             </div>
                         </form>
                     </div>
                 </div>
             </section>
 
-            <!-- VISTA: USUARIOS -->
+            <!-- ========================================== -->
+            <!-- VISTA: USUARIOS                            -->
+            <!-- ========================================== -->
             <section id="view-usuarios" class="view-section hidden">
                 <div class="flex justify-between items-center mb-6">
-                    <div>
-                        <h2 class="text-3xl font-extrabold text-slate-800 tracking-tight">Usuarios del Sistema</h2>
-                        <p class="text-slate-500 text-sm font-medium mt-1">Control de accesos y roles</p>
-                    </div>
+                    <h2 class="text-3xl font-extrabold text-slate-800 tracking-tight">Usuarios</h2>
                     <button onclick="abrirModalUsuario()" class="btn-coral text-sm">
                         <i class="fa-solid fa-plus"></i> Nuevo Usuario
                     </button>
@@ -367,13 +326,17 @@
         </div>
     </main>
 
-    <!-- MODAL: NUEVA / EDITAR RETENCIÓN -->
+    <!-- ================================================================= -->
+    <!-- MODAL: NUEVA / EDITAR RETENCIÓN (COMO IMÁGENES 2 Y 3)              -->
+    <!-- ================================================================= -->
     <div id="modal-retenciones" class="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50 flex items-center justify-center p-4 overflow-y-auto hidden">
         <div class="bg-white rounded-3xl shadow-2xl p-8 w-full max-w-2xl max-h-[92vh] overflow-y-auto relative animate-in fade-in zoom-in-95 duration-200">
+            <!-- Botón Cerrar "X" -->
             <button type="button" onclick="closeModal('modal-retenciones')" class="absolute top-6 right-6 text-slate-400 hover:text-slate-600 text-xl font-bold w-8 h-8 flex items-center justify-center rounded-full hover:bg-slate-100 transition-colors">
                 <i class="fa-solid fa-xmark"></i>
             </button>
 
+            <!-- Encabezado Modal -->
             <div class="flex items-center gap-3 mb-6">
                 <div class="w-10 h-10 rounded-xl bg-brand-primary/10 text-brand-primary flex items-center justify-center text-xl">
                     <i class="fa-solid fa-file-circle-plus"></i>
@@ -381,6 +344,7 @@
                 <h3 id="form-title-retenciones" class="text-2xl font-extrabold text-slate-800">Nueva Retención</h3>
             </div>
 
+            <!-- Banner Amarillo NÚMERO DE RETENCIÓN & CAI (Exacto Imagen 3) -->
             <div id="cai_alert" class="bg-brand-yellowBg text-brand-yellowText rounded-2xl p-5 mb-6 shadow-sm border border-amber-200/60 relative">
                 <button type="button" onclick="evaluarCAIActivo()" class="absolute top-4 right-4 text-brand-yellowText hover:opacity-75 transition-opacity text-sm">
                     <i class="fa-solid fa-arrows-rotate"></i>
@@ -389,10 +353,10 @@
                     NÚMERO DE RETENCIÓN
                 </div>
                 <div class="text-3xl font-black tracking-tight text-slate-900 mb-1" id="num_doc_display">
-                    ---
+                    563
                 </div>
                 <div class="text-xs font-medium text-amber-900/90">
-                    CAI: <span id="cai_display">Cargando...</span> · Rango: <span id="rango_display">--</span>
+                    CAI: <span id="cai_display">48C542-CBC560-880DE0-63BE03-090937-71</span> · Rango: <span id="rango_display">1 - 1000</span>
                 </div>
             </div>
 
@@ -402,11 +366,13 @@
                 <input type="hidden" id="num_documento_oculto">
                 <input type="hidden" id="proveedor_id">
 
+                <!-- Fecha de Retención -->
                 <div>
                     <label class="label-base flex items-center gap-2"><i class="fa-regular fa-calendar text-slate-400"></i> Fecha de Retención</label>
                     <input type="date" id="fecha" required class="input-base font-medium">
                 </div>
 
+                <!-- Proveedor Combobox -->
                 <div class="relative">
                     <label class="label-base flex items-center gap-2"><i class="fa-solid fa-building-user text-slate-400"></i> Proveedor</label>
                     <div class="relative">
@@ -420,6 +386,7 @@
                     </div>
                 </div>
 
+                <!-- PANEL DATOS DE LA FACTURA -->
                 <div class="bg-slate-50/80 rounded-2xl p-6 border border-slate-200/80 space-y-4">
                     <div class="flex items-center gap-2 text-xs font-bold text-slate-600 uppercase tracking-wider mb-2">
                         <i class="fa-solid fa-file-lines text-brand-primary"></i> DATOS DE LA FACTURA
@@ -440,19 +407,21 @@
                     </div>
                 </div>
 
+                <!-- Tipo de Impuesto (ISR vs IVA tabs) -->
                 <div>
                     <label class="label-base flex items-center gap-2"><i class="fa-solid fa-receipt text-slate-400"></i> Tipo de Impuesto</label>
                     <input type="hidden" id="tipo_impuesto" value="ISR">
                     <div class="grid grid-cols-2 gap-4">
                         <button type="button" id="btn-impuesto-isr" onclick="seleccionarTipoImpuesto('ISR')" class="py-3 rounded-2xl font-bold border-2 border-brand-primary bg-brand-primary/10 text-brand-primary transition-all">
-                            ISR (Impuesto Sobre la Renta)
+                            ISR
                         </button>
-                        <button type="button" id="btn-impuesto-isv" onclick="seleccionarTipoImpuesto('ISV')" class="py-3 rounded-2xl font-bold border border-slate-200 bg-white text-slate-600 hover:bg-slate-50 transition-all">
-                            ISV (Impuesto Sobre Ventas)
+                        <button type="button" id="btn-impuesto-iva" onclick="seleccionarTipoImpuesto('IVA')" class="py-3 rounded-2xl font-bold border border-slate-200 bg-white text-slate-600 hover:bg-slate-50 transition-all">
+                            IVA
                         </button>
                     </div>
                 </div>
 
+                <!-- Monto Base & Porcentaje -->
                 <div class="grid grid-cols-2 gap-4">
                     <div>
                         <label class="label-base flex items-center gap-1.5"><i class="fa-solid fa-dollar-sign text-slate-400"></i> Monto Base</label>
@@ -464,16 +433,19 @@
                     </div>
                 </div>
 
+                <!-- Resumen Monto Retenido -->
                 <div class="bg-brand-primary/5 rounded-2xl p-4 border border-brand-primary/20 flex justify-between items-center">
                     <span class="text-sm font-bold text-slate-700">Monto Retenido Calculado:</span>
                     <span id="monto_retenido_display" class="text-xl font-extrabold text-brand-primary">L 0.00</span>
                 </div>
 
+                <!-- Comentario / Observaciones -->
                 <div>
                     <label class="label-base flex items-center gap-1.5"><i class="fa-solid fa-pen text-slate-400"></i> Comentario / Observaciones</label>
                     <textarea id="Comentario" rows="3" class="input-base resize-none" placeholder="Ej. Pago correspondiente a factura de servicios profesionales..."></textarea>
                 </div>
 
+                <!-- Botones Footer -->
                 <div class="flex justify-end gap-3 pt-4 border-t border-slate-100">
                     <button type="button" onclick="closeModal('modal-retenciones')" class="btn-outline">Cerrar</button>
                     <button type="submit" class="btn-coral">
@@ -484,13 +456,17 @@
         </div>
     </div>
 
-    <!-- MODAL PROVEEDORES -->
+    <!-- ================================================================= -->
+    <!-- MODAL: NUEVO / EDITAR PROVEEDOR (COMO IMAGEN 1)                   -->
+    <!-- ================================================================= -->
     <div id="modal-proveedores" class="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
         <div class="bg-white rounded-3xl shadow-2xl p-8 w-full max-w-xl relative animate-in fade-in zoom-in-95 duration-200">
+            <!-- Botón Cerrar "X" -->
             <button type="button" onclick="closeModal('modal-proveedores')" class="absolute top-6 right-6 text-slate-400 hover:text-slate-600 text-xl font-bold w-8 h-8 flex items-center justify-center rounded-full hover:bg-slate-100 transition-colors">
                 <i class="fa-solid fa-xmark"></i>
             </button>
 
+            <!-- Encabezado Modal -->
             <div class="flex items-center gap-3 mb-6">
                 <div class="w-10 h-10 rounded-xl bg-brand-primary/10 text-brand-primary flex items-center justify-center text-lg">
                     <i class="fa-solid fa-user-plus"></i>
@@ -504,7 +480,7 @@
                 <div class="grid grid-cols-2 gap-4">
                     <div>
                         <label class="label-base">RTN Proveedor</label>
-                        <input type="text" id="prov_RTN_proveedor" required class="input-base font-mono" placeholder="08011974114180" maxlength="14">
+                        <input type="text" id="prov_RTN_proveedor" required class="input-base" placeholder="0000-0000-000000" maxlength="14">
                     </div>
                     <div>
                         <label class="label-base">Nombre Comercial</label>
@@ -520,7 +496,7 @@
                 <div class="grid grid-cols-2 gap-4">
                     <div>
                         <label class="label-base">Teléfono</label>
-                        <input type="text" id="prov_telefono" class="input-base" placeholder="+504 9389-0000">
+                        <input type="text" id="prov_telefono" class="input-base" placeholder="+504 0000-0000">
                     </div>
                     <div>
                         <label class="label-base">Correo Electrónico</label>
@@ -528,6 +504,7 @@
                     </div>
                 </div>
 
+                <!-- Botones Footer -->
                 <div class="flex justify-end gap-3 pt-4 border-t border-slate-100">
                     <button type="button" onclick="closeModal('modal-proveedores')" class="btn-outline">Cancelar</button>
                     <button type="submit" class="btn-coral">
@@ -630,180 +607,66 @@
         </div>
     </div>
 
-    <!-- MODAL VISTA DE IMPRESIÓN COMPROBANTE -->
-    <div id="modal-impresion" class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 flex items-center justify-center p-2 overflow-y-auto hidden">
-        <div class="bg-white rounded-3xl shadow-2xl w-full max-w-4xl pt-2 px-8 pb-8 relative print-container text-slate-800 font-sans my-0">
-            
-            <div class="no-print flex items-center justify-between pb-2 mb-3 border-b border-slate-100">
-                <div class="flex items-center gap-3">
-                    <div class="w-10 h-10 rounded-2xl bg-brand-primary/10 text-brand-primary flex items-center justify-center font-bold">
-                        <i class="fa-solid fa-print text-lg"></i>
-                    </div>
-                    <div>
-                        <h3 class="font-extrabold text-slate-800 text-lg">Vista Previa de Comprobante</h3>
-                        <p class="text-xs text-slate-500 font-medium">Formato Oficial de Retención de Impuesto</p>
-                    </div>
-                </div>
-                <div class="flex items-center gap-3">
-                    <button onclick="window.print()" class="btn-coral text-sm shadow-lg">
-                        <i class="fa-solid fa-print"></i> Imprimir Documento
-                    </button>
-                    <button onclick="closeModal('modal-impresion')" class="btn-outline text-sm">
-                        Cerrar
-                    </button>
-                </div>
-            </div>
-
-            <!-- ENCABEZADO EMPRESA -->
-            <div class="flex items-start gap-4 mb-6">
-                <svg class="w-16 h-16 text-cyan-600 shrink-0" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
-                    <path d="M50 15C45 25 35 35 35 50C35 65 45 75 50 85C55 75 65 65 65 50C65 35 55 25 50 15Z" fill="#0284C7"/>
-                    <path d="M40 30C30 40 25 50 25 60C25 75 35 85 50 85C45 75 40 65 40 50C40 40 40 35 40 30Z" fill="#F97316"/>
-                    <path d="M60 30C70 40 75 50 75 60C75 75 65 85 50 85C55 75 60 65 60 50C60 40 60 35 60 30Z" fill="#EAB308"/>
-                </svg>
-                <div class="text-left">
-                    <h2 id="print_empresa_nombre" class="text-lg font-bold tracking-tight text-slate-900 uppercase">FUNDACION PARA EL NIÑO QUEMADO</h2>
-                    <p id="print_empresa_rtn" class="text-xs text-slate-700 font-medium">RTN: 08019008131281</p>
-                    <p id="print_empresa_direccion" class="text-xs text-slate-600">Colonia Nueva Suyapa, anillo periférico, contiguo a Hospital Maria</p>
-                    <p id="print_empresa_telefono" class="text-xs text-slate-600">Tel: +504 2271-3302</p>
-                </div>
-            </div>
-
-            <hr class="border-slate-200 mb-6">
-
-            <!-- GRILLA DOS COLUMNAS -->
-            <div class="grid grid-cols-2 gap-8 mb-6">
-                <div class="space-y-4">
-                    <div>
-                        <h4 class="text-xs font-bold uppercase tracking-wider text-slate-900 mb-1">DATOS DEL PROVEEDOR</h4>
-                        <p id="print_prov_nombre" class="font-extrabold text-sm text-slate-800">---</p>
-                        <p id="print_prov_rtn" class="text-xs text-slate-700 font-mono">RTN: ---</p>
-                    </div>
-
-                    <div class="pt-2">
-                        <h4 class="text-xs font-bold uppercase tracking-wider text-slate-900 mb-1">DATOS DE LA FACTURA</h4>
-                        <div class="text-xs text-slate-700 space-y-0.5">
-                            <p>Fecha Factura: <span id="print_fac_fecha" class="font-medium">--/--/----</span></p>
-                            <p>No. Factura: <span id="print_fac_numero" class="font-mono font-medium">---</span></p>
-                            <p>CAI Factura: <span id="print_fac_cai" class="font-mono font-medium text-[11px]">---</span></p>
-                        </div>
-                    </div>
-
-                    <div class="pt-2">
-                        <h4 class="text-xs font-bold uppercase tracking-wider text-slate-900 mb-0.5">COMENTARIO:</h4>
-                        <p id="print_comentario" class="text-xs text-slate-600 italic">Sin observaciones</p>
-                    </div>
-                </div>
-
-                <div class="space-y-2 text-xs text-slate-700">
-                    <h4 class="text-xs font-bold uppercase tracking-wider text-slate-900 mb-1">INFORMACIÓN FISCAL</h4>
-                    <p>CAI: <span id="print_comp_cai" class="font-mono text-[11px] font-medium">---</span></p>
-                    <p>Fecha Vence: <span id="print_comp_vence" class="font-medium">--/--/----</span></p>
-                    <p>Rango: <span id="print_comp_rango" class="font-mono font-medium">---</span></p>
-                    <p class="pt-1 font-bold text-slate-900">No. Comprobante: <span id="print_comp_numero" class="font-mono text-sm">---</span></p>
-                    <p class="font-bold text-slate-900">Fecha Ret.: <span id="print_comp_fecha" class="font-medium">--/--/----</span></p>
-                </div>
-            </div>
-
-            <!-- TABLA DE VALORES -->
-            <table class="w-full text-left border-collapse mb-6">
-                <thead>
-                    <tr class="bg-slate-800 text-white text-xs font-bold">
-                        <th class="py-2.5 px-4 rounded-l-md">Descripción</th>
-                        <th class="py-2.5 px-4 text-right">Base Imponible</th>
-                        <th class="py-2.5 px-4 text-center">Tasa %</th>
-                        <th class="py-2.5 px-4 text-right rounded-r-md">Monto Retenido</th>
-                    </tr>
-                </thead>
-                <tbody class="text-xs text-slate-800 font-medium">
-                    <tr class="bg-slate-50/80 border-b border-slate-100">
-                        <td id="print_row_desc" class="py-3 px-4">Retención de Impuesto</td>
-                        <td id="print_row_base" class="py-3 px-4 text-right font-mono">L 0.00</td>
-                        <td id="print_row_tasa" class="py-3 px-4 text-center font-mono">0.0%</td>
-                        <td id="print_row_monto" class="py-3 px-4 text-right font-mono font-bold">L 0.00</td>
-                    </tr>
-                </tbody>
-            </table>
-
-            <div class="flex justify-end items-center gap-6 mb-16 text-xs font-bold text-slate-900">
-                <span>TOTAL RETENIDO:</span>
-                <span id="print_total_retenido" class="text-sm font-mono font-extrabold">L 0.00</span>
-            </div>
-
-            <div class="grid grid-cols-2 gap-16 pt-12 mb-8 text-center text-xs font-bold text-slate-700">
-                <div>
-                    <div class="border-t border-slate-300 pt-2">Firma y Sello del Agente Retención</div>
-                </div>
-                <div>
-                    <div class="border-t border-slate-300 pt-2">Recibido por Proveedor</div>
-                </div>
-            </div>
-
-            <div class="pt-6 border-t border-slate-100 flex justify-between items-center text-[10px] text-slate-400 font-medium">
-                <span id="print_footer_timestamp">--/--/---- | Elaborado por: BFunes | Impreso por: Breidy Funes</span>
-            </div>
-        </div>
-    </div>
-
     <script>
-        // ESTADO GLOBAL DE LA APLICACIÓN
         let state = {
             retenciones: [
-                { id: 1, fecha: "2026-05-10", proveedor_id: 1, documento_id: 1, num_documento: 562, monto_base: 5000, porcentaje: 12.5, monto_retenido: 625, tipo_impuesto: "ISR", Num_factura: "000-001-01-00012345", CAI_factura: "48C542-CBC560-880DE0-63BE03-090937-71", Fecha_factura: "2026-05-09", Comentario: "Retención por servicios profesionales", estado: "ACTIVO" },
-                { id: 2, fecha: "2026-05-11", proveedor_id: 3, documento_id: 1, num_documento: 563, monto_base: 12000, porcentaje: 15, monto_retenido: 1800, tipo_impuesto: "ISV", Num_factura: "000-002-01-00098765", CAI_factura: "A1B2C3-D4E5F6-789012-345678-90ABCD-EF", Fecha_factura: "2026-05-10", Comentario: "Retención de ISV por suministros de oficina", estado: "ACTIVO" }
+                { id: 1, fecha: "2026-01-27", proveedor_id: 24, documento_id: 1, num_documento: 502, monto_base: "25000.00", porcentaje: "12.5", monto_retenido: "3125.00", tipo_impuesto: "ISR", Num_factura: "000-001-04-00002351", CAI_factura: "3467F7-0254F3-A318E0-63BE03-09092D-C1", Fecha_factura: "2025-06-04", Comentario: "Datos Iniciales", estado: "ACTIVO" },
+                { id: 2, fecha: "2026-01-27", proveedor_id: 24, documento_id: 1, num_documento: 503, monto_base: "25000.00", porcentaje: "12.5", monto_retenido: "3125.00", tipo_impuesto: "ISR", Num_factura: "000-001-04-00002366", CAI_factura: "3467F7-0254F3-A318E0-63BE03-09092D-C1", Fecha_factura: "2025-07-08", Comentario: "Datos Iniciales", estado: "ACTIVO" },
+                { id: 3, fecha: "2026-02-16", proveedor_id: 13, documento_id: 1, num_documento: 504, monto_base: "4000.00", porcentaje: "12.5", monto_retenido: "500.00", tipo_impuesto: "ISR", Num_factura: "000-001-04-00000015", CAI_factura: "302C83-388C23-6C04E0-63BE03-090922-27", Fecha_factura: "2026-02-10", Comentario: "Datos Iniciales", estado: "ACTIVO" },
+                { id: 4, fecha: "2026-02-16", proveedor_id: 13, documento_id: 1, num_documento: 505, monto_base: "18735.36", porcentaje: "12.5", monto_retenido: "2341.92", tipo_impuesto: "ISR", Num_factura: "000-001-04-00000014", CAI_factura: "302C83-388C23-6C04E0-63BE03-090922-27", Fecha_factura: "2026-02-10", Comentario: "Datos Iniciales", estado: "ACTIVO" },
+                { id: 5, fecha: "2026-02-16", proveedor_id: 23, documento_id: 1, num_documento: 506, monto_base: "13440.00", porcentaje: "12.5", monto_retenido: "1680.00", tipo_impuesto: "ISR", Num_factura: "000-001-04-00000137", CAI_factura: "30B55E-B6AC51-0820E0-63BE03-090909-5D", Fecha_factura: "2026-02-10", Comentario: "Datos Iniciales", estado: "ACTIVO" }
             ],
             proveedores: [
-                { id: 1, RTN_proveedor: "08011990123456", proveedor: "ALMACENES EL REY S.A.", contacto: "Carlos Mendoza", telefono: "+504 2232-1100", correo: "contacto@elrey.hn" },
-                { id: 2, RTN_proveedor: "08011985654321", proveedor: "BANCO FISCAL HONDURAS", contacto: "Laura Torres", telefono: "+504 2280-0000", correo: "info@bancofiscal.hn" },
-                { id: 3, RTN_proveedor: "05011995887766", proveedor: "COMERCIALIZADORA DEL NORTE", contacto: "Roberto Gómez", telefono: "+504 2550-4433", correo: "ventas@comdelnorte.hn" },
-                { id: 4, RTN_proveedor: "08011974114180", proveedor: "DISTRIBUIDORA CENTRAL S. DE R.L.", contacto: "Ana María López", telefono: "+504 9389-0000", correo: "contacto@distcentral.hn" },
-                { id: 5, RTN_proveedor: "08011999443322", proveedor: "EQUIPOS Y SERVICIOS S.A.", contacto: "Jorge Fernández", telefono: "+504 2235-9988", correo: "jfernandez@equiposyservicios.hn" },
-                { id: 6, RTN_proveedor: "05011988221100", proveedor: "FARMACÉUTICA NACIONAL", contacto: "María José Castillo", telefono: "+504 2556-7711", correo: "servicios@farmaciacorp.hn" },
-                { id: 7, RTN_proveedor: "08011992334455", proveedor: "GRUPO EDITORIAL HONDURAS", contacto: "Mario Ramírez", telefono: "+504 2221-5544", correo: "mramirez@editorialhn.com" },
-                { id: 8, RTN_proveedor: "08011980998877", proveedor: "HOTEL Y CONVENCIONES CAPITAL", contacto: "Elena Delgado", telefono: "+504 2239-0000", correo: "reservas@hotelcapital.hn" },
-                { id: 9, RTN_proveedor: "05011991223344", proveedor: "INDUSTRIAS SULA S.A.", contacto: "Fernando Silva", telefono: "+504 2558-1234", correo: "fsilva@industriassula.hn" },
-                { id: 10, RTN_proveedor: "08011987556677", proveedor: "LOGÍSTICA Y TRANSPORTES EXPRESS", contacto: "David Suazo", telefono: "+504 2246-8800", correo: "dsuazo@logisticaexpress.hn" },
-                { id: 11, RTN_proveedor: "08011993112233", proveedor: "SOLUCIONES TECNOLÓGICAS GLOBAL", contacto: "Sonia Valle", telefono: "+504 2231-0022", correo: "soporte@solucionesglobal.hn" },
-                { id: 12, RTN_proveedor: "08011984667788", proveedor: "TALLERES MECÁNICOS UNIDOS", contacto: "Pedro Vargas", telefono: "+504 2225-3311", correo: "pvargas@talleresunidos.hn" }
+                { id: 1, RTN_proveedor: "05011969021517", proveedor: "GERMAN EDGARDO LEITZELAR HERNANDEZ", contacto: "GERMAN EDGARDO LEITZELAR HERNANDEZ", telefono: "N/A", correo: "N/A" },
+                { id: 2, RTN_proveedor: "08011999064243", proveedor: "LUIS FERNANDO FIGUEROA LOPEZ", contacto: "LUIS FERNANDO FIGUEROA LOPEZ", telefono: "N/A", correo: "N/A" },
+                { id: 3, RTN_proveedor: "08011986130748", proveedor: "MAYBELL CRISTINA MEJIA AVILA", contacto: "MAYBELL CRISTINA MEJIA AVILA", telefono: "N/A", correo: "N/A" },
+                { id: 4, RTN_proveedor: "08011989266721", proveedor: "ELIETH ALEJANDRA OCHOA MATAMOROS", contacto: "ELIETH ALEJANDRA OCHOA MATAMOROS", telefono: "N/A", correo: "N/A" },
+                { id: 5, RTN_proveedor: "08011988159850", proveedor: "ANGELICA ABELINA ROMERO MARTINEZ", contacto: "ANGELICA ABELINA ROMERO MARTINEZ", telefono: "N/A", correo: "N/A" },
+                { id: 6, RTN_proveedor: "07081987000695", proveedor: "MARIA BEATRIZ RODRIGUEZ MORAZAN", contacto: "MARIA BEATRIZ RODRIGUEZ MORAZAN", telefono: "N/A", correo: "N/A" },
+                { id: 7, RTN_proveedor: "10072000004846", proveedor: "AUDELY ORELLANA YANEZ", contacto: "AUDELY ORELLANA YANEZ", telefono: "N/A", correo: "N/A" },
+                { id: 8, RTN_proveedor: "08011982085409", proveedor: "AUDREY LENINA CRUZ ZELAYA", contacto: "AUDREY LENINA CRUZ ZELAYA", telefono: "N/A", correo: "N/A" },
+                { id: 9, RTN_proveedor: "08011994012992", proveedor: "TANIA GABRIELA ACOSTA MARTINEZ", contacto: "TANIA GABRIELA ACOSTA MARTINEZ", telefono: "N/A", correo: "N/A" },
+                { id: 10, RTN_proveedor: "08011999116642", proveedor: "ALEJANDRA CLARISA DOMINGUEZ JIMENEZ", contacto: "ALEJANDRA CLARISA DOMINGUEZ JIMENEZ", telefono: "N/A", correo: "N/A" },
+                { id: 11, RTN_proveedor: "08011989088283", proveedor: "DARLING MICHELL ANDINO HERNANDEZ", contacto: "DARLING MICHELL ANDINO HERNANDEZ", telefono: "N/A", correo: "N/A" },
+                { id: 12, RTN_proveedor: "08011994220546", proveedor: "JAAN BLADIMIR VALERIO CORRALES", contacto: "JAAN BLADIMIR VALERIO CORRALES", telefono: "N/A", correo: "N/A" },
+                { id: 13, RTN_proveedor: "08012003199106", proveedor: "ANDREA ABIGAIL CASTRO CERRATO", contacto: "ANDREA ABIGAIL CASTRO CERRATO", telefono: "N/A", correo: "N/A" },
+                { id: 14, RTN_proveedor: "08012001144665", proveedor: "JENNEVY SOHAM OSORIO SUAZO", contacto: "JENNEVY SOHAM OSORIO SUAZO", telefono: "N/A", correo: "N/A" },
+                { id: 15, RTN_proveedor: "08261988002790", proveedor: "MARIA DEL ROSARIO VELASQUEZ ORTIZ", contacto: "MARIA DEL ROSARIO VELASQUEZ ORTIZ", telefono: "N/A", correo: "N/A" },
+                { id: 16, RTN_proveedor: "08011995087742", proveedor: "RUT ALBERTINA LOBO CARDENAS", contacto: "RUT ALBERTINA LOBO CARDENAS", telefono: "N/A", correo: "N/A" },
+                { id: 17, RTN_proveedor: "08012003075089", proveedor: "CESAR DANIEL CHAVARRIA GALEANO", contacto: "CESAR DANIEL CHAVARRIA GALEANO", telefono: "N/A", correo: "N/A" },
+                { id: 18, RTN_proveedor: "07071999001116", proveedor: "KATHIA MARCELA MAYEN RAMIREZ", contacto: "KATHIA MARCELA MAYEN RAMIREZ", telefono: "N/A", correo: "N/A" },
+                { id: 19, RTN_proveedor: "08011996053244", proveedor: "GRACIELA MARIA GARCIA VALLADARES", contacto: "GRACIELA MARIA GARCIA VALLADARES", telefono: "N/A", correo: "N/A" },
+                { id: 20, RTN_proveedor: "08011962017735", proveedor: "OMAR ELIAS MEJIA ZUNIGA", contacto: "OMAR ELIAS MEJIA ZUNIGA", telefono: "N/A", correo: "N/A" },
+                { id: 21, RTN_proveedor: "14131995000491", proveedor: "EDWIN OSMAR CHINCHILLA CASTILLO", contacto: "EDWIN OSMAR CHINCHILLA CASTILLO", telefono: "N/A", correo: "N/A" },
+                { id: 22, RTN_proveedor: "08091995005733", proveedor: "ALBA RUT ENAMORADO ALMENDAREZ", contacto: "ALBA RUT ENAMORADO ALMENDAREZ", telefono: "N/A", correo: "N/A" },
+                { id: 23, RTN_proveedor: "08011999113064", proveedor: "SHELCY REXCELL SERRANO BORJAS", contacto: "SHELCY REXCELL SERRANO BORJAS", telefono: "N/A", correo: "N/A" },
+                { id: 24, RTN_proveedor: "08011986195418", proveedor: "AIDA YISSEL HENRIQUEZ MEDINA", contacto: "AIDA YISSEL HENRIQUEZ MEDINA", telefono: "N/A", correo: "N/A" }
             ],
             documentos: [
-                { id: 1, prefijo: "000-001-05", serial_min: 1, serial_max: 1000, CAI: "48C542-CBC560-880DE0-63BE03-090937-71", vence: "2026-12-31", num_documento: 563 }
+                { id: 1, prefijo: "000-001-05", serial_min: 1, serial_max: 1000, CAI: "48C542-CBC560-880DE0-63BE03-090937-71", vence: "2026-12-31", num_documento: 562, creado_por: "BFunes" }
             ],
-            empresa: [
-                { id: 1, RTN: "08019008131281", empresa: "FUNDACION PARA EL NIÑO QUEMADO", direccion: "Colonia Nueva Suyapa, anillo periférico, contiguo a Hospital Maria", telefono: "+504 2271-3302" }
-            ],
-            usuarios: [
-                { id: 1, usuario: "admin", nombre: "Administrador del Sistema", rol: "admin" },
-                { id: 2, usuario: "bfunes", nombre: "Breidy Funes", rol: "usuario" }
-            ]
+            empresa: [{ id: 1, empresa: "FUNDACION PARA EL NIÑO QUEMADO", Nombre: "FUNDACION PARA EL NIÑO QUEMADO", RTN: "08019008131281", direccion: "Colonia Nueva Suyapa, anillo periférico, contiguo a Hospital Maria", telefono: "+504 2271-3302" }],
+            usuarios: [{ id: 1, usuario: "admin", nombre: "Administrador", clave: "123", rol: "admin" }]
         };
 
         let currentPageRetenciones = 1;
         const pageSizeRetenciones = 10;
 
-        let currentPageProveedores = 1;
-        const pageSizeProveedores = 10;
-
-        function showLoader(msg = "Sincronizando...") {
-            document.getElementById('loader-text').textContent = msg;
-            document.getElementById('loader-overlay').classList.remove('opacity-0', 'pointer-events-none');
-            document.getElementById('loader-overlay').classList.add('opacity-100');
-        }
-
-        function hideLoader() {
-            document.getElementById('loader-overlay').classList.add('opacity-0', 'pointer-events-none');
-            document.getElementById('loader-overlay').classList.remove('opacity-100');
+        function renderAll() {
+            renderTableRetenciones();
+            renderTableProveedores();
+            renderTableDocumentos();
+            renderTableUsuarios();
+            renderFormEmpresa();
+            renderProveedorCombobox();
+            evaluarCAIActivo();
         }
 
         document.addEventListener('DOMContentLoaded', () => {
             document.getElementById('fecha').valueAsDate = new Date();
+            renderAll();
             
-            sincronizarConServidor();
-
-            document.getElementById('filtroBusquedaGlobal').addEventListener('input', () => {
-                currentPageRetenciones = 1;
-                renderTableRetenciones();
-            });
+            document.getElementById('filtroBusquedaGlobal').addEventListener('input', filtrarRetenciones);
             document.getElementById('monto_base').addEventListener('input', calcularRetencion);
             document.getElementById('porcentaje').addEventListener('input', calcularRetencion);
 
@@ -827,50 +690,8 @@
             document.getElementById('usuarioForm').addEventListener('submit', handleFormSubmitUsuario);
             document.getElementById('empresaForm').addEventListener('submit', handleFormSubmitEmpresa);
 
-            document.getElementById('searchRTNProv').addEventListener('input', () => {
-                currentPageProveedores = 1;
-                renderTableProveedores();
-            });
+            document.getElementById('searchRTNProv').addEventListener('input', filtrarProveedores);
         });
-
-        function sincronizarConServidor() {
-            showLoader("Cargando datos...");
-            if (typeof google !== 'undefined' && google.script && google.script.run) {
-                google.script.run
-                    .withSuccessHandler(onDataLoaded)
-                    .withFailureHandler(onServerError)
-                    .getInitialData();
-            } else {
-                setTimeout(() => {
-                    hideLoader();
-                    renderAll();
-                }, 300);
-            }
-        }
-
-        function onDataLoaded(data) {
-            hideLoader();
-            if (data) {
-                state = data;
-                renderAll();
-                showToast("Datos sincronizados correctamente", "success");
-            }
-        }
-
-        function onServerError(error) {
-            hideLoader();
-            showError("Error de comunicación: " + (error.message || error));
-        }
-
-        function renderAll() {
-            renderTableRetenciones();
-            renderTableProveedores();
-            renderTableDocumentos();
-            renderTableUsuarios();
-            renderFormEmpresa();
-            renderProveedorCombobox();
-            evaluarCAIActivo();
-        }
 
         function switchView(viewId) {
             document.querySelectorAll('.view-section').forEach(sec => sec.classList.add('hidden'));
@@ -892,13 +713,13 @@
         function seleccionarTipoImpuesto(tipo) {
             document.getElementById('tipo_impuesto').value = tipo;
             const btnIsr = document.getElementById('btn-impuesto-isr');
-            const btnIsv = document.getElementById('btn-impuesto-isv');
+            const btnIva = document.getElementById('btn-impuesto-iva');
             if (tipo === 'ISR') {
                 btnIsr.className = "py-3 rounded-2xl font-bold border-2 border-brand-primary bg-brand-primary/10 text-brand-primary transition-all";
-                btnIsv.className = "py-3 rounded-2xl font-bold border border-slate-200 bg-white text-slate-600 hover:bg-slate-50 transition-all";
+                btnIva.className = "py-3 rounded-2xl font-bold border border-slate-200 bg-white text-slate-600 hover:bg-slate-50 transition-all";
                 document.getElementById('porcentaje').value = 12.5;
             } else {
-                btnIsv.className = "py-3 rounded-2xl font-bold border-2 border-brand-primary bg-brand-primary/10 text-brand-primary transition-all";
+                btnIva.className = "py-3 rounded-2xl font-bold border-2 border-brand-primary bg-brand-primary/10 text-brand-primary transition-all";
                 btnIsr.className = "py-3 rounded-2xl font-bold border border-slate-200 bg-white text-slate-600 hover:bg-slate-50 transition-all";
                 document.getElementById('porcentaje').value = 15;
             }
@@ -910,7 +731,6 @@
             document.getElementById('retencion_id').value = '';
             document.getElementById('fecha').valueAsDate = new Date();
             document.getElementById('form-title-retenciones').textContent = "Nueva Retención";
-            seleccionarTipoImpuesto('ISR');
             evaluarCAIActivo();
             abrirModal('modal-retenciones');
         }
@@ -953,6 +773,16 @@
             document.getElementById('errorModal').classList.remove('hidden');
         }
 
+        function renderAll() {
+            renderTableRetenciones();
+            renderTableProveedores();
+            renderTableDocumentos();
+            renderTableUsuarios();
+            renderFormEmpresa();
+            renderProveedorCombobox();
+            evaluarCAIActivo();
+        }
+
         function renderFormEmpresa() {
             if (state.empresa && state.empresa.length > 0) {
                 const emp = state.empresa[0];
@@ -965,24 +795,25 @@
         }
 
         function evaluarCAIActivo() {
-            if (document.getElementById('retencion_id').value) return;
-
+            if (document.getElementById('retencion_id').value) {
+                return;
+            }
             const fechaIngresada = new Date(document.getElementById('fecha').value);
-            if (isNaN(fechaIngresada.getTime())) return;
+            if(isNaN(fechaIngresada.getTime())) return;
 
-            let documentoActivo = null;
-            let siguienteNumeroDoc = 0;
+            documentoActivo = null;
+            let ultimoNumero = 0;
 
             const documentosValidos = state.documentos.filter(d => {
                 const fechaVence = new Date(d.vence);
                 fechaVence.setHours(23,59,59,999);
-                return fechaVence >= fechaIngresada && (parseInt(d.num_documento) || 0) < parseInt(d.serial_max);
+                return fechaVence >= fechaIngresada && (d.num_documento || 0) < d.serial_max;
             });
 
             if (documentosValidos.length > 0) {
                 documentoActivo = documentosValidos[0];
-                const ultimoNumero = parseInt(documentoActivo.num_documento) || (parseInt(documentoActivo.serial_min) - 1);
-                siguienteNumeroDoc = ultimoNumero + 1;
+                ultimoNumero = documentoActivo.num_documento || (documentoActivo.serial_min - 1);
+                siguienteNumeroDoc = parseInt(ultimoNumero) + 1;
             }
 
             const alertBox = document.getElementById('cai_alert');
@@ -1010,160 +841,64 @@
         function renderTableRetenciones() {
             const tbody = document.getElementById('tabla-retenciones');
             const emptyState = document.getElementById('empty-state');
-            const paginationContainer = document.getElementById('paginacion-retenciones-container');
-            const query = (document.getElementById('filtroBusquedaGlobal')?.value || '').toLowerCase();
-            
             tbody.innerHTML = '';
+            let totalRetenidoSum = 0;
             
-            const filtered = state.retenciones.filter(ret => {
-                const prov = state.proveedores.find(p => p.id == ret.proveedor_id);
-                const provName = prov ? prov.proveedor : '';
-                const provRtn = prov ? prov.RTN_proveedor : '';
-                const doc = state.documentos.find(d => d.id == ret.documento_id);
-                const docPrefix = doc ? (doc.prefijo || '') : '';
-                const docStr = `${docPrefix}-${String(ret.num_documento).padStart(8, '0')}`;
-                const searchable = `${docStr} ${provName} ${provRtn} ${ret.Num_factura} ${ret.fecha}`.toLowerCase();
-                return searchable.includes(query);
-            });
-
-            filtered.sort((a, b) => {
-                const dateA = new Date(a.fecha || 0);
-                const dateB = new Date(b.fecha || 0);
-                if (dateB - dateA !== 0) return dateB - dateA;
-                return (b.num_documento || 0) - (a.num_documento || 0);
-            });
-
-            if (filtered.length === 0) {
+            if (state.retenciones.length === 0) {
                 emptyState.classList.remove('hidden');
                 tbody.parentNode.classList.add('hidden');
-                if (paginationContainer) paginationContainer.classList.add('hidden');
+                document.getElementById('total-retenido-summary').textContent = 'L 0.00';
                 return;
             }
-            
             emptyState.classList.add('hidden');
             tbody.parentNode.classList.remove('hidden');
-            if (paginationContainer) paginationContainer.classList.remove('hidden');
 
-            const totalItems = filtered.length;
-            const totalPages = Math.ceil(totalItems / pageSizeRetenciones) || 1;
-            if (currentPageRetenciones > totalPages) currentPageRetenciones = totalPages;
-            if (currentPageRetenciones < 1) currentPageRetenciones = 1;
-
-            const startIndex = (currentPageRetenciones - 1) * pageSizeRetenciones;
-            const endIndex = Math.min(startIndex + pageSizeRetenciones, totalItems);
-            const pageItems = filtered.slice(startIndex, endIndex);
-
-            pageItems.forEach(ret => {
+            state.retenciones.forEach(ret => {
                 const prov = state.proveedores.find(p => p.id == ret.proveedor_id);
                 const provName = prov ? prov.proveedor : 'Desconocido';
                 const provRtn = prov ? prov.RTN_proveedor : '';
                 const doc = state.documentos.find(d => d.id == ret.documento_id);
-                const docPrefix = doc ? (doc.prefijo || '') : 'N/A';
+                const docPrefix = doc ? (doc.prefijo || doc.EPT || '') : 'N/A';
                 const docStr = `${docPrefix}-${String(ret.num_documento).padStart(8, '0')}`;
                 const montoRet = parseFloat(ret.monto_retenido) || 0;
-                const taxType = (ret.tipo_impuesto === 'IVA' ? 'ISV' : (ret.tipo_impuesto || 'ISR'));
 
                 const tr = document.createElement('tr');
                 tr.className = 'hover:bg-amber-50/40 transition-colors border-b border-slate-100/70 text-sm';
+                tr.dataset.searchable = `${docStr} ${provName} ${provRtn} ${ret.Num_factura}`.toLowerCase();
 
                 tr.innerHTML = `
                     <td class="py-4 px-6">
                         <div class="badge-yellow mb-1">${docStr}</div>
-                        <div><span class="px-2 py-0.5 rounded-full text-[10px] font-extrabold ${ret.estado === 'ANULADO' ? 'bg-red-100 text-red-800' : 'bg-emerald-100 text-emerald-800'}">${ret.estado || 'ACTIVO'}</span></div>
+                        <div><span class="px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-emerald-100 text-emerald-800">${ret.estado}</span></div>
                     </td>
                     <td class="py-4 px-6 text-slate-600 font-medium text-xs">${ret.fecha}</td>
                     <td class="py-4 px-6">
                         <div class="font-extrabold text-slate-800 text-sm">${provName}</div>
                         <div class="badge-yellow text-[10px] mt-0.5 font-mono">${provRtn}</div>
                     </td>
-                    <td class="py-4 px-6 text-center">
-                        <span class="px-2.5 py-1 rounded-xl text-xs font-bold bg-slate-100 text-slate-700">${taxType}</span>
-                    </td>
                     <td class="py-4 px-6 text-right font-extrabold text-brand-primary text-base">L ${montoRet.toLocaleString('es-HN', { minimumFractionDigits: 2 })}</td>
                     <td class="py-4 px-6 text-center">
                         <div class="flex items-center justify-center gap-1.5">
-                            <button onclick="imprimirRetencion(${ret.id})" class="w-8 h-8 rounded-xl bg-orange-50 text-brand-primary hover:bg-brand-primary hover:text-white transition-all flex items-center justify-center shadow-sm" title="Imprimir Comprobante"><i class="fa-solid fa-print text-xs"></i></button>
-                            <button onclick="editarRetencion(${ret.id})" class="w-8 h-8 rounded-xl bg-orange-50 text-brand-primary hover:bg-brand-primary hover:text-white transition-all flex items-center justify-center shadow-sm" title="Editar"><i class="fa-solid fa-pen text-xs"></i></button>
-                            <button onclick="anularRetencionServer(${ret.id})" class="w-8 h-8 rounded-xl bg-red-50 text-red-500 hover:bg-red-500 hover:text-white transition-all flex items-center justify-center shadow-sm" title="Anular Comprobante"><i class="fa-solid fa-xmark text-xs"></i></button>
+                            <button onclick="showToast('Generando vista de impresión...')" class="w-8 h-8 rounded-xl bg-orange-50 text-brand-primary hover:bg-brand-primary hover:text-white transition-all flex items-center justify-center shadow-sm"><i class="fa-solid fa-print text-xs"></i></button>
+                            <button onclick="editarRetencion(${ret.id})" class="w-8 h-8 rounded-xl bg-orange-50 text-brand-primary hover:bg-brand-primary hover:text-white transition-all flex items-center justify-center shadow-sm"><i class="fa-solid fa-pen text-xs"></i></button>
+                            <button onclick="cambiarEstadoRetencion(${ret.id}, 'ANULADO')" class="w-8 h-8 rounded-xl bg-red-50 text-red-500 hover:bg-red-500 hover:text-white transition-all flex items-center justify-center shadow-sm"><i class="fa-solid fa-xmark text-xs"></i></button>
                         </div>
                     </td>
                 `;
                 tbody.appendChild(tr);
             });
 
-            document.getElementById('paginacion-info-retenciones').textContent = `Mostrando ${startIndex + 1} a ${endIndex} de ${totalItems} retenciones`;
-            
-            const btnContainer = document.getElementById('paginacion-botones-retenciones');
-            btnContainer.innerHTML = '';
-
-            const prevBtn = document.createElement('button');
-            prevBtn.className = `w-8 h-8 rounded-xl border flex items-center justify-center transition-all ${currentPageRetenciones === 1 ? 'border-slate-200 text-slate-300 cursor-not-allowed' : 'border-slate-200 text-slate-600 hover:bg-slate-100'}`;
-            prevBtn.innerHTML = '<i class="fa-solid fa-chevron-left text-xs"></i>';
-            prevBtn.disabled = currentPageRetenciones === 1;
-            prevBtn.onclick = () => { if(currentPageRetenciones > 1) { currentPageRetenciones--; renderTableRetenciones(); } };
-            btnContainer.appendChild(prevBtn);
-
-            for (let i = 1; i <= totalPages; i++) {
-                const pBtn = document.createElement('button');
-                pBtn.className = `w-8 h-8 rounded-xl font-bold text-xs transition-all ${i === currentPageRetenciones ? 'bg-brand-primary text-white shadow-sm' : 'border border-slate-200 text-slate-600 hover:bg-slate-100'}`;
-                pBtn.textContent = i;
-                pBtn.onclick = () => { currentPageRetenciones = i; renderTableRetenciones(); };
-                btnContainer.appendChild(pBtn);
-            }
-
-            const nextBtn = document.createElement('button');
-            nextBtn.className = `w-8 h-8 rounded-xl border flex items-center justify-center transition-all ${currentPageRetenciones === totalPages ? 'border-slate-200 text-slate-300 cursor-not-allowed' : 'border-slate-200 text-slate-600 hover:bg-slate-100'}`;
-            nextBtn.innerHTML = '<i class="fa-solid fa-chevron-right text-xs"></i>';
-            nextBtn.disabled = currentPageRetenciones === totalPages;
-            nextBtn.onclick = () => { if(currentPageRetenciones < totalPages) { currentPageRetenciones++; renderTableRetenciones(); } };
-            btnContainer.appendChild(nextBtn);
+            document.getElementById('total-retenido-summary').textContent = `L ${totalRetenidoSum.toLocaleString('es-HN', { minimumFractionDigits: 2 })}`;
         }
 
         function renderTableProveedores() {
             const tbody = document.getElementById('tabla-proveedores');
-            const emptyState = document.getElementById('empty-state-proveedores');
-            const paginationContainer = document.getElementById('paginacion-proveedores-container');
-            const query = (document.getElementById('searchRTNProv')?.value || '').toLowerCase();
-            
             tbody.innerHTML = '';
-            
-            const filtered = state.proveedores.filter(p => {
-                const provName = (p.proveedor || '').toLowerCase();
-                const provRtn = (p.RTN_proveedor || '').toLowerCase();
-                const provContacto = (p.contacto || '').toLowerCase();
-                return provName.includes(query) || provRtn.includes(query) || provContacto.includes(query);
-            });
-
-            // Ordenar alfabéticamente A-Z por la columna del nombre del proveedor
-            filtered.sort((a, b) => {
-                const nameA = (a.proveedor || '').toLowerCase();
-                const nameB = (b.proveedor || '').toLowerCase();
-                return nameA.localeCompare(nameB, 'es', { sensitivity: 'base' });
-            });
-
-            if (filtered.length === 0) {
-                if (emptyState) emptyState.classList.remove('hidden');
-                tbody.parentNode.classList.add('hidden');
-                if (paginationContainer) paginationContainer.classList.add('hidden');
-                return;
-            }
-            
-            if (emptyState) emptyState.classList.add('hidden');
-            tbody.parentNode.classList.remove('hidden');
-            if (paginationContainer) paginationContainer.classList.remove('hidden');
-
-            const totalItems = filtered.length;
-            const totalPages = Math.ceil(totalItems / pageSizeProveedores) || 1;
-            if (currentPageProveedores > totalPages) currentPageProveedores = totalPages;
-            if (currentPageProveedores < 1) currentPageProveedores = 1;
-
-            const startIndex = (currentPageProveedores - 1) * pageSizeProveedores;
-            const endIndex = Math.min(startIndex + pageSizeProveedores, totalItems);
-            const pageItems = filtered.slice(startIndex, endIndex);
-
-            pageItems.forEach(p => {
+            state.proveedores.forEach(p => {
                 const tr = document.createElement('tr');
                 tr.className = 'border-b border-slate-100 hover:bg-amber-50/40 text-sm transition-colors';
+                tr.dataset.rtn = (p.RTN_proveedor || '').toLowerCase();
+                tr.dataset.nombre = (p.proveedor || '').toLowerCase();
                 tr.innerHTML = `
                     <td class="py-4 px-6 font-extrabold text-slate-800">${p.proveedor}</td>
                     <td class="py-4 px-6"><span class="badge-yellow font-mono text-xs">${p.RTN_proveedor}</span></td>
@@ -1174,39 +909,14 @@
                     </td>
                     <td class="py-4 px-6 text-center">
                         <div class="flex items-center justify-center gap-1.5">
+                            <button onclick="showToast('Consultando proveedor...')" class="w-8 h-8 rounded-xl bg-orange-50 text-brand-primary hover:bg-brand-primary hover:text-white transition-all flex items-center justify-center"><i class="fa-solid fa-id-card text-xs"></i></button>
                             <button onclick="editarProveedor(${p.id})" class="w-8 h-8 rounded-xl bg-orange-50 text-brand-primary hover:bg-brand-primary hover:text-white transition-all flex items-center justify-center"><i class="fa-solid fa-pen text-xs"></i></button>
+                            <button onclick="showToast('Función deshabilitada para registros activos')" class="w-8 h-8 rounded-xl bg-slate-100 text-slate-400 flex items-center justify-center"><i class="fa-solid fa-trash-can text-xs"></i></button>
                         </div>
                     </td>
                 `;
                 tbody.appendChild(tr);
             });
-
-            document.getElementById('paginacion-info-proveedores').textContent = `Mostrando ${startIndex + 1} a ${endIndex} de ${totalItems} proveedores`;
-            
-            const btnContainer = document.getElementById('paginacion-botones-proveedores');
-            btnContainer.innerHTML = '';
-
-            const prevBtn = document.createElement('button');
-            prevBtn.className = `w-8 h-8 rounded-xl border flex items-center justify-center transition-all ${currentPageProveedores === 1 ? 'border-slate-200 text-slate-300 cursor-not-allowed' : 'border-slate-200 text-slate-600 hover:bg-slate-100'}`;
-            prevBtn.innerHTML = '<i class="fa-solid fa-chevron-left text-xs"></i>';
-            prevBtn.disabled = currentPageProveedores === 1;
-            prevBtn.onclick = () => { if(currentPageProveedores > 1) { currentPageProveedores--; renderTableProveedores(); } };
-            btnContainer.appendChild(prevBtn);
-
-            for (let i = 1; i <= totalPages; i++) {
-                const pBtn = document.createElement('button');
-                pBtn.className = `w-8 h-8 rounded-xl font-bold text-xs transition-all ${i === currentPageProveedores ? 'bg-brand-primary text-white shadow-sm' : 'border border-slate-200 text-slate-600 hover:bg-slate-100'}`;
-                pBtn.textContent = i;
-                pBtn.onclick = () => { currentPageProveedores = i; renderTableProveedores(); };
-                btnContainer.appendChild(pBtn);
-            }
-
-            const nextBtn = document.createElement('button');
-            nextBtn.className = `w-8 h-8 rounded-xl border flex items-center justify-center transition-all ${currentPageProveedores === totalPages ? 'border-slate-200 text-slate-300 cursor-not-allowed' : 'border-slate-200 text-slate-600 hover:bg-slate-100'}`;
-            nextBtn.innerHTML = '<i class="fa-solid fa-chevron-right text-xs"></i>';
-            nextBtn.disabled = currentPageProveedores === totalPages;
-            nextBtn.onclick = () => { if(currentPageProveedores < totalPages) { currentPageProveedores++; renderTableProveedores(); } };
-            btnContainer.appendChild(nextBtn);
         }
 
         function renderTableDocumentos() {
@@ -1216,7 +926,7 @@
                 const tr = document.createElement('tr');
                 tr.className = 'border-b border-slate-100 hover:bg-amber-50/40 text-sm transition-colors';
                 tr.innerHTML = `
-                    <td class="py-4 px-6 font-extrabold text-slate-800"><span class="badge-yellow font-mono">${d.prefijo || ''}</span></td>
+                    <td class="py-4 px-6 font-extrabold text-slate-800"><span class="badge-yellow font-mono">${d.prefijo || d.EPT}</span></td>
                     <td class="py-4 px-6 font-mono text-xs">${d.serial_min} al ${d.serial_max}</td>
                     <td class="py-4 px-6 font-mono text-xs text-slate-600">${d.CAI}</td>
                     <td class="py-4 px-6 text-xs text-slate-600 font-medium">${d.vence}</td>
@@ -1273,13 +983,7 @@
         function renderProveedorCombobox() {
             const ul = document.getElementById('proveedor_list');
             ul.innerHTML = '';
-            
-            // Ordenar proveedores alfabéticamente para el combobox
-            const sorted = [...state.proveedores].sort((a, b) => 
-                (a.proveedor || '').localeCompare(b.proveedor || '', 'es', { sensitivity: 'base' })
-            );
-
-            sorted.forEach(p => {
+            state.proveedores.forEach(p => {
                 const li = document.createElement('li');
                 li.className = 'px-4 py-2.5 hover:bg-amber-50 cursor-pointer border-b border-slate-50 flex justify-between items-center transition-colors';
                 li.dataset.id = p.id;
@@ -1321,42 +1025,6 @@
             }
         }
 
-        function guardarRegistroEnBackend(tabla, registro, modalId, mensajeExito) {
-            showLoader(`Guardando en ${tabla}...`);
-
-            if (typeof google !== 'undefined' && google.script && google.script.run) {
-                google.script.run
-                    .withSuccessHandler((res) => {
-                        hideLoader();
-                        if (res.status === "success") {
-                            state = res.data;
-                            renderAll();
-                            closeModal(modalId);
-                            showToast(mensajeExito, "success");
-                        } else {
-                            showError(res.message || "Error al guardar el registro");
-                        }
-                    })
-                    .withFailureHandler(onServerError)
-                    .saveRegistro(tabla, registro);
-            } else {
-                // Fallback local para la vista previa
-                setTimeout(() => {
-                    hideLoader();
-                    if (!registro.id) {
-                        registro.id = Date.now();
-                        state[tabla].push(registro);
-                    } else {
-                        const idx = state[tabla].findIndex(item => item.id === registro.id);
-                        if (idx !== -1) state[tabla][idx] = registro;
-                    }
-                    renderAll();
-                    if(modalId !== 'view-empresa') closeModal(modalId);
-                    showToast(mensajeExito, "success");
-                }, 400);
-            }
-        }
-
         function handleFormSubmitRetencion(e) {
             e.preventDefault();
             if(document.getElementById('Num_factura').value.length !== 19) {
@@ -1367,125 +1035,119 @@
                 showError("El CAI de la factura debe tener exactamente 37 caracteres.");
                 return;
             }
-            if(!document.getElementById('proveedor_id').value) {
-                showError("Debe seleccionar un proveedor válido del listado.");
-                return;
-            }
             
             const id = document.getElementById('retencion_id').value;
             const reg = {
-                id: id ? parseInt(id) : null,
+                id: id ? parseInt(id) : state.retenciones.length + 1,
                 fecha: document.getElementById('fecha').value,
                 proveedor_id: parseInt(document.getElementById('proveedor_id').value),
                 documento_id: parseInt(document.getElementById('documento_id').value),
                 num_documento: parseInt(document.getElementById('num_documento_oculto').value),
-                monto_base: parseFloat(document.getElementById('monto_base').value),
-                porcentaje: parseFloat(document.getElementById('porcentaje').value),
-                monto_retenido: parseFloat(((parseFloat(document.getElementById('monto_base').value) * parseFloat(document.getElementById('porcentaje').value)) / 100).toFixed(2)),
+                monto_base: document.getElementById('monto_base').value,
+                porcentaje: document.getElementById('porcentaje').value,
+                monto_retenido: ((parseFloat(document.getElementById('monto_base').value) * parseFloat(document.getElementById('porcentaje').value)) / 100).toFixed(2),
                 tipo_impuesto: document.getElementById('tipo_impuesto').value,
                 Num_factura: document.getElementById('Num_factura').value,
                 CAI_factura: document.getElementById('CAI_factura').value,
                 Fecha_factura: document.getElementById('Fecha_factura').value,
                 Comentario: document.getElementById('Comentario').value,
-                creado_por: 'BFunes',
                 estado: "ACTIVO"
             };
 
-            guardarRegistroEnBackend('retenciones', reg, 'modal-retenciones', "Comprobante de retención guardado correctamente");
+            if(id) {
+                const idx = state.retenciones.findIndex(r => r.id == id);
+                if(idx > -1) {
+                    reg.num_documento = state.retenciones[idx].num_documento;
+                    reg.documento_id = state.retenciones[idx].documento_id;
+                    state.retenciones[idx] = reg;
+                }
+            } else {
+                state.retenciones.unshift(reg);
+            }
+
+            renderTableRetenciones();
+            closeModal('modal-retenciones');
+            showToast("Comprobante guardado correctamente", "success");
         }
 
         function handleFormSubmitProveedor(e) {
             e.preventDefault();
             const id = document.getElementById('prov_id').value;
-            let rtnVal = String(document.getElementById('prov_RTN_proveedor').value).trim();
-            if (rtnVal.length === 13) {
-                rtnVal = "0" + rtnVal;
-            }
-
             const p = {
-                id: id ? parseInt(id) : null,
-                RTN_proveedor: rtnVal,
+                id: id ? parseInt(id) : state.proveedores.length + 1,
+                RTN_proveedor: document.getElementById('prov_RTN_proveedor').value,
                 proveedor: document.getElementById('prov_proveedor').value,
                 contacto: document.getElementById('prov_contacto').value,
-                telefono: String(document.getElementById('prov_telefono').value).trim(),
-                correo: document.getElementById('prov_correo').value,
-                creado_por: 'BFunes'
+                telefono: document.getElementById('prov_telefono').value,
+                correo: document.getElementById('prov_correo').value
             };
-
-            guardarRegistroEnBackend('proveedores', p, 'modal-proveedores', "Proveedor guardado correctamente");
+            if(id) {
+                const idx = state.proveedores.findIndex(item => item.id == id);
+                if(idx > -1) state.proveedores[idx] = p;
+            } else {
+                state.proveedores.unshift(p);
+            }
+            renderTableProveedores();
+            renderProveedorCombobox();
+            closeModal('modal-proveedores');
+            showToast("Proveedor guardado correctamente", "success");
         }
 
         function handleFormSubmitDocumento(e) {
             e.preventDefault();
             const id = document.getElementById('doc_id').value;
             const d = {
-                id: id ? parseInt(id) : null,
+                id: id ? parseInt(id) : state.documentos.length + 1,
                 CAI: document.getElementById('doc_CAI').value,
                 prefijo: document.getElementById('doc_prefijo').value,
                 vence: document.getElementById('doc_vence').value,
                 serial_min: parseInt(document.getElementById('doc_serial_min').value),
                 serial_max: parseInt(document.getElementById('doc_serial_max').value),
-                num_documento: parseInt(document.getElementById('doc_serial_min').value) - 1,
-                creado_por: 'BFunes'
+                num_documento: 0
             };
-
-            guardarRegistroEnBackend('documentos', d, 'modal-documentos', "Autorización CAI registrada");
+            if(id) {
+                const idx = state.documentos.findIndex(item => item.id == id);
+                if(idx > -1) state.documentos[idx] = d;
+            } else {
+                state.documentos.unshift(d);
+            }
+            renderTableDocumentos();
+            evaluarCAIActivo();
+            closeModal('modal-documentos');
+            showToast("Autorización CAI guardada", "success");
         }
 
         function handleFormSubmitUsuario(e) {
             e.preventDefault();
             const id = document.getElementById('usu_id').value;
             const u = {
-                id: id ? parseInt(id) : null,
+                id: id ? parseInt(id) : state.usuarios.length + 1,
                 usuario: document.getElementById('usu_usuario').value,
                 nombre: document.getElementById('usu_nombre').value,
                 clave: document.getElementById('usu_clave').value,
                 rol: document.getElementById('usu_rol').value
             };
-
-            guardarRegistroEnBackend('usuarios', u, 'modal-usuarios', "Usuario guardado correctamente");
+            if(id) {
+                const idx = state.usuarios.findIndex(item => item.id == id);
+                if(idx > -1) state.usuarios[idx] = u;
+            } else {
+                state.usuarios.unshift(u);
+            }
+            renderTableUsuarios();
+            closeModal('modal-usuarios');
+            showToast("Usuario guardado", "success");
         }
 
         function handleFormSubmitEmpresa(e) {
             e.preventDefault();
-            const emp = {
-                id: parseInt(document.getElementById('emp_id').value) || 1,
+            state.empresa[0] = {
+                id: 1,
                 RTN: document.getElementById('emp_RTN').value,
                 empresa: document.getElementById('emp_empresa').value,
                 direccion: document.getElementById('emp_direccion').value,
                 telefono: document.getElementById('emp_telefono').value
             };
-
-            guardarRegistroEnBackend('empresa', emp, 'view-empresa', "Datos de la empresa actualizados");
-        }
-
-        function anularRetencionServer(id) {
-            if(!confirm("¿Está seguro de que desea anular este comprobante de retención?")) return;
-
-            showLoader("Anulando comprobante...");
-            if (typeof google !== 'undefined' && google.script && google.script.run) {
-                google.script.run
-                    .withSuccessHandler((res) => {
-                        hideLoader();
-                        if (res.status === "success") {
-                            state = res.data;
-                            renderAll();
-                            showToast("Comprobante anulado correctamente", "success");
-                        } else {
-                            showError(res.message);
-                        }
-                    })
-                    .withFailureHandler(onServerError)
-                    .cambiarEstadoRetencion(id, 'ANULADO');
-            } else {
-                setTimeout(() => {
-                    hideLoader();
-                    const ret = state.retenciones.find(r => r.id === id);
-                    if(ret) ret.estado = 'ANULADO';
-                    renderAll();
-                    showToast("Comprobante anulado correctamente", "success");
-                }, 300);
-            }
+            showToast("Datos de la empresa actualizados", "success");
         }
 
         function editarRetencion(id) {
@@ -1514,7 +1176,7 @@
             document.getElementById('monto_base').value = ret.monto_base;
             document.getElementById('porcentaje').value = ret.porcentaje;
             document.getElementById('Comentario').value = ret.Comentario || '';
-            seleccionarTipoImpuesto(ret.tipo_impuesto === 'IVA' ? 'ISV' : (ret.tipo_impuesto || 'ISR'));
+            seleccionarTipoImpuesto(ret.tipo_impuesto || 'ISR');
             document.getElementById('form-title-retenciones').textContent = "Editar Retención";
             abrirModal('modal-retenciones');
         }
@@ -1537,7 +1199,7 @@
             if(!d) return;
             document.getElementById('doc_id').value = d.id;
             document.getElementById('doc_CAI').value = d.CAI;
-            document.getElementById('doc_prefijo').value = d.prefijo || '';
+            document.getElementById('doc_prefijo').value = d.prefijo || d.EPT;
             document.getElementById('doc_vence').value = d.vence;
             document.getElementById('doc_serial_min').value = d.serial_min;
             document.getElementById('doc_serial_max').value = d.serial_max;
@@ -1550,63 +1212,41 @@
             document.getElementById('usu_id').value = u.id;
             document.getElementById('usu_usuario').value = u.usuario;
             document.getElementById('usu_nombre').value = u.nombre || '';
-            document.getElementById('usu_clave').value = '';
+            document.getElementById('usu_clave').value = u.clave;
             document.getElementById('usu_rol').value = u.rol || 'usuario';
             abrirModal('modal-usuarios');
         }
 
-        function imprimirRetencion(id) {
+        function cambiarEstadoRetencion(id, estado) {
             const ret = state.retenciones.find(r => r.id === id);
-            if(!ret) return;
+            if(ret) {
+                ret.estado = estado;
+                renderTableRetenciones();
+                showToast(`Retención marcada como ${estado}`);
+            }
+        }
 
-            const prov = state.proveedores.find(p => p.id == ret.proveedor_id) || {};
-            const doc = state.documentos.find(d => d.id == ret.documento_id) || (state.documentos[0] || {});
-            const emp = (state.empresa && state.empresa[0]) ? state.empresa[0] : {};
+        function filtrarRetenciones() {
+            const query = document.getElementById('filtroBusquedaGlobal').value.toLowerCase();
+            document.querySelectorAll('#tabla-retenciones tr').forEach(row => {
+                const match = (row.dataset.searchable || '').includes(query);
+                row.style.display = match ? '' : 'none';
+            });
+        }
 
-            const docPrefix = doc.prefijo || '000-001-05';
-            const docStr = `${docPrefix}-${String(ret.num_documento).padStart(8, '0')}`;
-            const baseMonto = parseFloat(ret.monto_base) || 0;
-            const tasaPct = parseFloat(ret.porcentaje) || 12.5;
-            const retenidoMonto = parseFloat(ret.monto_retenido) || 0;
-
-            const fmtDate = (dStr) => {
-                if(!dStr) return '--/--/----';
-                const parts = dStr.split('T')[0].split('-');
-                if(parts.length === 3) return `${parts[2]}/${parts[1]}/${parts[0]}`;
-                return dStr;
-            };
-
-            document.getElementById('print_empresa_nombre').textContent = emp.empresa || emp.Nombre || "FUNDACION PARA EL NIÑO QUEMADO";
-            document.getElementById('print_empresa_rtn').textContent = `RTN: ${emp.RTN || '08019008131281'}`;
-            document.getElementById('print_empresa_direccion').textContent = emp.direccion || '';
-            document.getElementById('print_empresa_telefono').textContent = `Tel: ${emp.telefono || ''}`;
-
-            document.getElementById('print_prov_nombre').textContent = prov.proveedor || 'N/A';
-            document.getElementById('print_prov_rtn').textContent = `RTN: ${prov.RTN_proveedor || 'N/A'}`;
-            document.getElementById('print_fac_fecha').textContent = fmtDate(ret.Fecha_factura);
-            document.getElementById('print_fac_numero').textContent = ret.Num_factura || 'N/A';
-            document.getElementById('print_fac_cai').textContent = ret.CAI_factura || 'N/A';
-            document.getElementById('print_comentario').textContent = ret.Comentario || 'Sin observaciones';
-
-            document.getElementById('print_comp_cai').textContent = doc.CAI || 'N/A';
-            document.getElementById('print_comp_vence').textContent = fmtDate(doc.vence);
-            document.getElementById('print_comp_rango').textContent = doc.serial_min ? `${String(doc.serial_min).padStart(8, '0')} al ${String(doc.serial_max).padStart(8, '0')}` : 'N/A';
-            document.getElementById('print_comp_numero').textContent = docStr;
-            document.getElementById('print_comp_fecha').textContent = fmtDate(ret.fecha);
-
-            const taxLabel = (ret.tipo_impuesto === 'ISV' || ret.tipo_impuesto === 'IVA') ? 'Retención de Impuesto Sobre Ventas (ISV)' : 'Retención de Impuesto sobre la Renta (ISR)';
-            document.getElementById('print_row_desc').textContent = taxLabel;
-            document.getElementById('print_row_base').textContent = `L ${baseMonto.toLocaleString('es-HN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
-            document.getElementById('print_row_tasa').textContent = `${tasaPct}%`;
-            document.getElementById('print_row_monto').textContent = `L ${retenidoMonto.toLocaleString('es-HN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
-            document.getElementById('print_total_retenido').textContent = `L ${retenidoMonto.toLocaleString('es-HN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
-
-            const now = new Date();
-            const nowFormatted = `${now.toLocaleDateString('es-HN')} ${now.toLocaleTimeString('es-HN', { hour: '2-digit', minute: '2-digit' })}`;
-            document.getElementById('print_footer_timestamp').textContent = `${nowFormatted} | Elaborado por: BFunes | Impreso por: Breidy Funes`;
-
-            abrirModal('modal-impresion');
+        function filtrarProveedores() {
+            const filter = document.getElementById('searchRTNProv').value.toLowerCase();
+            document.querySelectorAll('#tabla-proveedores tr').forEach(row => {
+                const match = (row.dataset.rtn || '').includes(filter) || (row.dataset.nombre || '').includes(filter);
+                row.style.display = match ? '' : 'none';
+            });
         }
     </script>
 </body>
-</html>
+</html>'''
+
+target_path = r'd:\AppScript\retenciones\frontend.html'
+with open(target_path, 'w', encoding='utf-8') as f:
+    f.write(html_content)
+
+print(f"Successfully wrote {len(html_content)} bytes to {target_path}")

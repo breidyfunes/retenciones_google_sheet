@@ -1,0 +1,6 @@
+# Archivos de datos locales y base de datos
+Retenciones.xlsx
+*.xlsx
+retenciones.db.sql
+*.sql
+*.db
